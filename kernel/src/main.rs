@@ -6,13 +6,12 @@ use core::arch::asm;
 use limine::request::FramebufferRequest;
 use limine::BaseRevision;
 
-/// Sets the base revision to the latest revision supported by the crate.
-/// See specification for further info.
-// Be sure to mark all limine requests with #[used], otherwise they may be removed by the compiler.
 #[used]
+#[link_section = "requests"]
 static BASE_REVISION: BaseRevision = BaseRevision::new();
 
 #[used]
+#[link_section = "requests"]
 static FRAMEBUFFER_REQUEST: FramebufferRequest = FramebufferRequest::new();
 
 #[no_mangle]
@@ -29,7 +28,9 @@ unsafe extern "C" fn _start() -> ! {
                 let pixel_offset = i * framebuffer.pitch() + i * 4;
 
                 // Write 0xFFFFFFFF to the provided pixel offset to fill it white.
-                *(framebuffer.addr().add(pixel_offset as usize) as *mut u32) = 0xFFFFFFFF;
+                unsafe {
+                    *(framebuffer.addr().add(pixel_offset as usize) as *mut u32) = 0xFFFFFFFF
+                };
             }
         }
     }

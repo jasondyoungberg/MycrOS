@@ -1,7 +1,27 @@
 [package]
-name = "limine-rust-template"
+name = "kernel"
 version = "0.1.0"
 edition = "2021"
+
+[lints.rust]
+unsafe_op_in_unsafe_fn = "deny"
+unused_unsafe = "warn"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+correctness = { level = "warn", priority = -1 }
+nursery = { level = "warn", priority = -1 }
+pedantic = { level = "warn", priority = -1 }
+style = { level = "warn", priority = -1 }
+perf = { level = "warn", priority = -1 }
+complexity = { level = "warn", priority = -1 }
+
+missing_safety_doc = "warn"
+multiple_unsafe_ops_per_block = "warn"
+undocumented_unsafe_blocks = "warn"
+unwrap_used = "warn"
+
+cast_possible_truncation = "allow"
 
 [dependencies]
 limine = "0.2.0"
