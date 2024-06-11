@@ -1,6 +1,8 @@
 #![no_std]
 #![no_main]
 
+mod logger;
+
 use core::arch::asm;
 
 use limine::request::FramebufferRequest;
@@ -19,6 +21,10 @@ unsafe extern "C" fn _start() -> ! {
     // All limine requests must also be referenced in a called function, otherwise they may be
     // removed by the linker.
     assert!(BASE_REVISION.is_supported());
+
+    logger::init();
+
+    log::info!("Hello, World!");
 
     if let Some(framebuffer_response) = FRAMEBUFFER_REQUEST.get_response() {
         if let Some(framebuffer) = framebuffer_response.framebuffers().next() {
