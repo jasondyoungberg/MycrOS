@@ -7,15 +7,15 @@ use spin::Lazy;
 
 #[used]
 #[link_section = "requests"]
-pub static BASE_REVISION: BaseRevision = BaseRevision::new();
+static BASE_REVISION: BaseRevision = BaseRevision::new();
 
 #[used]
 #[link_section = "requests"]
-pub static HHDM_REQUEST: HhdmRequest = HhdmRequest::new();
+static HHDM_REQUEST: HhdmRequest = HhdmRequest::new();
 
 #[used]
 #[link_section = "requests"]
-pub static MEMORY_MAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
+static MEMORY_MAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
 
 #[used]
 #[link_section = "requests"]
