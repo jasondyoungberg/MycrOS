@@ -6,7 +6,7 @@ use x86_64::{
     PhysAddr,
 };
 
-use crate::boot::MEMORY_MAP_REQUEST;
+use crate::boot::MEMORY_MAP_RESPONSE;
 
 static NEXT: AtomicU64 = AtomicU64::new(0);
 pub struct FrameAllocator;
@@ -15,9 +15,7 @@ pub struct FrameAllocator;
 unsafe impl paging::FrameAllocator<Size4KiB> for FrameAllocator {
     fn allocate_frame(&mut self) -> Option<paging::PhysFrame<Size4KiB>> {
         let index = NEXT.fetch_add(1, Ordering::Relaxed);
-        MEMORY_MAP_REQUEST
-            .get_response()
-            .expect("memory map response not found")
+        MEMORY_MAP_RESPONSE
             .entries()
             .iter()
             .filter(|&entry| entry.entry_type == EntryType::USABLE)
