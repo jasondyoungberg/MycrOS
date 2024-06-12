@@ -7,3 +7,7 @@ Install rust from https://rustup.rs/, other dependencies with apt,
 sudo apt install build-essential qemu-system xorriso gdisk mtools gdb
 ```
 then simply `make run`
+
+## Todo
+
+- Linked list frame allocator
