@@ -9,10 +9,9 @@ use x86_64::instructions::{hlt, interrupts};
 
 #[no_mangle]
 unsafe extern "C" fn _start() -> ! {
-    boot::verify();
     logger::init();
-
     log::info!("Hello, World!");
+    boot::verify();
 
     log::error!("error");
     log::warn!("warn");
