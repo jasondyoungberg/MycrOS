@@ -17,8 +17,21 @@ impl Log for Logger {
     }
 
     fn log(&self, record: &log::Record) {
+        let color = match record.level() {
+            Level::Error => 91,
+            Level::Warn => 93,
+            Level::Info => 96,
+            Level::Debug => 92,
+            Level::Trace => 90,
+        };
+
         DebugconWriter
-            .write_fmt(format_args!("[{}] {}\n", record.level(), record.args()))
+            .write_fmt(format_args!(
+                "\x1b[{}m[{}] {}\x1b[0m\n",
+                color,
+                record.target(),
+                record.args()
+            ))
             .expect("Debugcon should never fail");
     }
 
