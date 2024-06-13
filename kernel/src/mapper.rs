@@ -2,8 +2,8 @@ use spin::{Lazy, Mutex};
 use x86_64::{
     registers::control::Cr3,
     structures::paging::{
-        mapper::MapToError, page::PageRange, Mapper, OffsetPageTable, Page, PageTable,
-        PageTableFlags, PhysFrame, Size4KiB,
+        mapper::MapToError, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, PhysFrame,
+        Size4KiB,
     },
     VirtAddr,
 };

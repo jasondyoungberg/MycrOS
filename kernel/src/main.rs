@@ -3,6 +3,7 @@
 
 mod alloc_frame;
 mod boot;
+mod display;
 mod logger;
 mod mapper;
 
