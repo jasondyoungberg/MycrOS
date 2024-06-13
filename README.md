@@ -11,3 +11,4 @@ then simply `make run`
 ## Todo
 
 - Linked list frame allocator
+- Buddy/slab heap allocator

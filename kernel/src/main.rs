@@ -1,12 +1,17 @@
 #![no_std]
 #![no_main]
 
+extern crate alloc;
+
 mod alloc_frame;
 mod boot;
 mod display;
+mod heap;
+mod layout;
 mod logger;
 mod mapper;
 
+use alloc::boxed::Box;
 use x86_64::instructions::{hlt, interrupts};
 
 #[no_mangle]
