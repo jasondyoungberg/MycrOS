@@ -16,8 +16,11 @@ pub static DISPLAY: Lazy<Mutex<Display>> = Lazy::new(|| {
         .next()
         .expect("There should be at least one framebuffer");
 
-    let addr = NonNull::new(framebuffer.addr()).expect("Framebuffer address should not be null");
-    let buffer = unsafe { VolatileRef::new(addr) }.write_only();
+    let ptr = framebuffer.addr();
+    let size = framebuffer.pitch() * framebuffer.height();
+
+    // Safety: `ptr` and `size` are provided and validated by limine
+    let buffer = unsafe { core::slice::from_raw_parts_mut(ptr, size as usize) };
 
     assert_eq!(
         framebuffer.bpp() % 8,
@@ -40,7 +43,7 @@ pub static DISPLAY: Lazy<Mutex<Display>> = Lazy::new(|| {
 });
 
 pub struct Display {
-    buffer: VolatileRef<'static, u8, WriteOnly>,
+    buffer: &'static mut [u8],
 
     total_bytes: u64,
     bytes_per_line: u64,
@@ -59,31 +62,17 @@ impl Display {
         let color = if state { 0xFF } else { 0x00 };
 
         for color_offset in 0..self.bytes_per_pixel {
-            let total_offset = main_offset + color_offset;
-            assert!(total_offset < self.total_bytes, "Offset is out of bounds");
-            let ptr = self.buffer.as_mut_ptr();
-            // Safety: `offset` is within the bounds of the buffer.
-            let f = |x: NonNull<u8>| unsafe { x.add(total_offset as usize) };
-            // Safety: `buffer` is a pointer from limine
-            // and `f` adds a bound-checked offset to it.
-            unsafe { ptr.map(f) }.write(color);
+            self.buffer[(main_offset + color_offset) as usize] = color;
         }
     }
 
     fn put_char(&mut self, c: char) {
         let char_x = self.cursor_x;
         let char_y = self.cursor_y;
-        self.cursor_x += FONT_WIDTH;
-
-        if self.cursor_x >= self.width {
-            self.cursor_x = 0;
-            self.cursor_y += FONT_HEIGHT;
-        }
 
         let char_index = match c {
             '\n' => {
-                self.cursor_x = 0;
-                self.cursor_y += FONT_HEIGHT;
+                self.newline();
                 return;
             }
             ' '..='~' => c as u64 - 31,
@@ -102,6 +91,29 @@ impl Display {
                 );
             }
         }
+
+        self.cursor_x += FONT_WIDTH;
+
+        if self.cursor_x >= self.width {
+            self.newline();
+        }
+    }
+
+    fn newline(&mut self) {
+        self.cursor_x = 0;
+        self.cursor_y += FONT_HEIGHT;
+        if self.cursor_y >= self.height {
+            self.cursor_y -= FONT_HEIGHT;
+            self.scroll();
+        }
+    }
+
+    fn scroll(&mut self) {
+        let offset = FONT_HEIGHT * self.bytes_per_line;
+
+        self.buffer.copy_within(offset as usize.., 0);
+
+        self.buffer[(self.total_bytes - offset) as usize..].fill(0);
     }
 }
 
