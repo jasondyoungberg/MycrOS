@@ -1,8 +1,7 @@
-use core::{fmt::Write, ptr::NonNull};
+use core::fmt::Write;
 
 use bit_field::BitField;
 use spin::{Lazy, Mutex};
-use volatile::{access::WriteOnly, VolatileRef};
 
 use crate::boot::FRAMEBUFFER_RESPONSE;
 
