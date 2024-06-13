@@ -4,6 +4,7 @@
 mod alloc_frame;
 mod boot;
 mod logger;
+mod mapper;
 
 use x86_64::instructions::{hlt, interrupts};
 
@@ -12,12 +13,7 @@ unsafe extern "C" fn _start() -> ! {
     logger::init();
     log::info!("Hello, World!");
     boot::verify();
-
-    log::error!("error");
-    log::warn!("warn");
-    log::info!("info");
-    log::debug!("debug");
-    log::trace!("trace");
+    mapper::init();
 
     hcf();
 }
