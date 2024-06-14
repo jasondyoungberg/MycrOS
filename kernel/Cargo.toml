@@ -17,7 +17,6 @@ perf = { level = "warn", priority = -1 }
 complexity = { level = "warn", priority = -1 }
 
 missing_safety_doc = "warn"
-multiple_unsafe_ops_per_block = "warn"
 undocumented_unsafe_blocks = "warn"
 unwrap_used = "warn"
 

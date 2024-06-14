@@ -6,12 +6,12 @@ extern crate alloc;
 mod alloc_frame;
 mod boot;
 mod display;
+mod gdt;
 mod heap;
 mod layout;
 mod logger;
 mod mapper;
 
-use alloc::boxed::Box;
 use x86_64::instructions::{hlt, interrupts};
 
 #[no_mangle]
@@ -20,6 +20,8 @@ unsafe extern "C" fn _start() -> ! {
     log::info!("Hello, World!");
     boot::verify();
     mapper::init();
+
+    gdt::init();
 
     hcf();
 }
