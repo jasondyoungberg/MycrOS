@@ -5,13 +5,13 @@ use x86_64::{
     PrivilegeLevel::{Ring0, Ring3},
 };
 
-const KERNEL_CODE: SegmentSelector = SegmentSelector::new(8, Ring0);
-const KERNEL_DATA: SegmentSelector = SegmentSelector::new(16, Ring0);
-const USER_DATA: SegmentSelector = SegmentSelector::new(24, Ring3);
-const USER_CODE: SegmentSelector = SegmentSelector::new(32, Ring3);
+const KERNEL_CODE: SegmentSelector = SegmentSelector::new(1, Ring0);
+const KERNEL_DATA: SegmentSelector = SegmentSelector::new(2, Ring0);
+const USER_DATA: SegmentSelector = SegmentSelector::new(3, Ring3);
+const USER_CODE: SegmentSelector = SegmentSelector::new(4, Ring3);
 
 pub fn init() {
-    let mut gdt = GlobalDescriptorTable::new();
+    let mut gdt = Box::new(GlobalDescriptorTable::new());
     let kernel_code = gdt.append(Descriptor::kernel_code_segment());
     let kernel_data = gdt.append(Descriptor::kernel_data_segment());
     let user_data = gdt.append(Descriptor::user_data_segment());
@@ -28,7 +28,7 @@ pub fn init() {
     assert_eq!(user_data, USER_DATA, "User data selector not as expected");
     assert_eq!(user_code, USER_CODE, "User code selector not as expected");
 
-    Box::leak(Box::new(gdt)).load();
+    Box::leak(gdt).load();
 
     // Safety: These selectors are valid.
     unsafe {

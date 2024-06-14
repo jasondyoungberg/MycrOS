@@ -1,5 +1,6 @@
 #![no_std]
 #![no_main]
+#![feature(abi_x86_interrupt)]
 
 extern crate alloc;
 
@@ -8,6 +9,7 @@ mod boot;
 mod display;
 mod gdt;
 mod heap;
+mod idt;
 mod layout;
 mod logger;
 mod mapper;
@@ -22,8 +24,13 @@ unsafe extern "C" fn _start() -> ! {
     mapper::init();
 
     gdt::init();
+    idt::init();
 
-    hcf();
+    interrupts::enable();
+
+    loop {
+        hlt();
+    }
 }
 
 #[panic_handler]
