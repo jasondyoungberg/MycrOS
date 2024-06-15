@@ -1,5 +1,6 @@
 use alloc::boxed::Box;
 use x86_64::{
+    instructions::tables::load_tss,
     registers::segmentation::{Segment, CS, DS, ES, FS, GS, SS},
     structures::{
         gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector},
@@ -16,7 +17,7 @@ const USER_DATA: SegmentSelector = SegmentSelector::new(3, Ring3);
 const USER_CODE: SegmentSelector = SegmentSelector::new(4, Ring3);
 
 pub fn init() {
-    let mut tss = TaskStateSegment::new();
+    let mut tss = Box::new(TaskStateSegment::new());
 
     tss.privilege_stack_table[0] = Stack::new(65536).rsp();
 
@@ -29,6 +30,7 @@ pub fn init() {
     let kernel_data = gdt.append(Descriptor::kernel_data_segment());
     let user_data = gdt.append(Descriptor::user_data_segment());
     let user_code = gdt.append(Descriptor::user_code_segment());
+    let tss_selector = gdt.append(Descriptor::tss_segment(Box::leak(tss)));
 
     assert_eq!(
         kernel_code, KERNEL_CODE,
@@ -45,6 +47,7 @@ pub fn init() {
 
     // Safety: These selectors are valid.
     unsafe {
+        load_tss(tss_selector);
         CS::set_reg(KERNEL_CODE);
         DS::set_reg(KERNEL_DATA);
         ES::set_reg(KERNEL_DATA);

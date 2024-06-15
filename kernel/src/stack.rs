@@ -1,6 +1,13 @@
-use x86_64::{structures::paging::page::PageRange, VirtAddr};
+use x86_64::{
+    structures::paging::{page::PageRange, PageTableFlags},
+    VirtAddr,
+};
 
-use crate::{alloc_page::PageAllocator, layout, mapper::unmap_kernel_page};
+use crate::{
+    alloc_page::PageAllocator,
+    layout,
+    mapper::{map_kernel_page, unmap_kernel_page},
+};
 
 static PAGE_ALLOC: PageAllocator = PageAllocator::new(layout::STACK);
 
@@ -15,6 +22,17 @@ impl Stack {
         let pages = PAGE_ALLOC
             .alloc_pages(size / 4096)
             .expect("Stack address range depleted");
+
+        for page in pages {
+            // Safety: This is safe since these pages aren't used anywhere else
+            unsafe {
+                map_kernel_page(
+                    page,
+                    PageTableFlags::PRESENT | PageTableFlags::WRITABLE | PageTableFlags::NO_EXECUTE,
+                )
+            }
+            .expect("Mapping failed");
+        }
 
         Self { pages }
     }

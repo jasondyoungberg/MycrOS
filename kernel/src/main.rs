@@ -8,6 +8,7 @@ mod alloc_frame;
 mod alloc_page;
 mod boot;
 mod display;
+mod exception;
 mod gdt;
 mod heap;
 mod idt;

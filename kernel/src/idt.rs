@@ -7,10 +7,18 @@ use x86_64::{
     structures::idt::{InterruptDescriptorTable, InterruptStackFrame},
 };
 
+use crate::exception;
+
 pub static IDT: Lazy<Mutex<Pin<Box<InterruptDescriptorTable>>>> = Lazy::new(|| {
     let mut idt = InterruptDescriptorTable::new();
 
     set_general_handler!(&mut idt, general_handler);
+
+    let o = idt.page_fault.set_handler_fn(exception::page_fault);
+    unsafe { o.set_stack_index(1) };
+
+    let o = idt.double_fault.set_handler_fn(exception::double_fault);
+    unsafe { o.set_stack_index(2) };
 
     Mutex::new(Box::pin(idt))
 });
