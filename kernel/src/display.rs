@@ -74,8 +74,8 @@ impl Display {
                 self.newline();
                 return;
             }
-            ' '..='~' => c as u64 - 31,
-            _ => 0,
+            ' '..='~' => c as u64 - 32,
+            _ => 95,
         };
 
         let font_offset = char_index * FONT_HEIGHT;
