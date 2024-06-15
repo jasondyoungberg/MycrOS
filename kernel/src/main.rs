@@ -5,6 +5,7 @@
 extern crate alloc;
 
 mod alloc_frame;
+mod alloc_page;
 mod boot;
 mod display;
 mod gdt;
@@ -13,6 +14,7 @@ mod idt;
 mod layout;
 mod logger;
 mod mapper;
+mod stack;
 
 use x86_64::instructions::{hlt, interrupts};
 

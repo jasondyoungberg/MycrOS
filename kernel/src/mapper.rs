@@ -2,14 +2,14 @@ use spin::{Lazy, Mutex};
 use x86_64::{
     registers::control::Cr3,
     structures::paging::{
-        mapper::MapToError, Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, PhysFrame,
-        Size4KiB,
+        mapper::{MapToError, UnmapError},
+        Mapper, OffsetPageTable, Page, PageTable, PageTableFlags, PhysFrame, Size4KiB,
     },
     VirtAddr,
 };
 
 use crate::{
-    alloc_frame::{alloc_frame, FrameAllocator},
+    alloc_frame::{alloc_frame, dealloc_frame, FrameAllocator},
     boot::HHDM_RESPONSE,
 };
 
@@ -54,4 +54,18 @@ pub unsafe fn map_kernel_page(
     let frame = alloc_frame().expect("Out of memory");
     // Safety: handled by the caller
     unsafe { map_kernel_page_to_frame(page, frame, flags) }
+}
+
+/// # Safety
+/// Memory mapping is fundamentally unsafe.
+pub unsafe fn unmap_kernel_page(page: Page) -> Result<(), UnmapError> {
+    let mut mapper = KERNEL_MAPPER.lock();
+
+    let (frame, flush) = mapper.unmap(page)?;
+    flush.flush();
+
+    // Safety: Frame was just deallocated and is therefore unused
+    unsafe { dealloc_frame(frame) };
+
+    Ok(())
 }
