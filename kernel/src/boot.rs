@@ -1,6 +1,6 @@
 use limine::{
-    request::{FramebufferRequest, HhdmRequest, MemoryMapRequest},
-    response::{FramebufferResponse, HhdmResponse, MemoryMapResponse},
+    request::{FramebufferRequest, HhdmRequest, MemoryMapRequest, SmpRequest},
+    response::{FramebufferResponse, HhdmResponse, MemoryMapResponse, SmpResponse},
     BaseRevision,
 };
 use spin::Lazy;
@@ -21,6 +21,10 @@ static MEMORY_MAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
 #[link_section = "requests"]
 pub static FRAMEBUFFER_REQUEST: FramebufferRequest = FramebufferRequest::new();
 
+#[used]
+#[link_section = "requests"]
+pub static SMP_REQUEST: SmpRequest = SmpRequest::new();
+
 pub static HHDM_RESPONSE: Lazy<&HhdmResponse> =
     Lazy::new(|| HHDM_REQUEST.get_response().expect("HHDM request failed"));
 
@@ -36,10 +40,14 @@ pub static FRAMEBUFFER_RESPONSE: Lazy<&FramebufferResponse> = Lazy::new(|| {
         .expect("Framebuffer request failed")
 });
 
+pub static SMP_RESPONSE: Lazy<&SmpResponse> =
+    Lazy::new(|| SMP_REQUEST.get_response().expect("SMP request failed"));
+
 pub fn verify() {
     assert!(BASE_REVISION.is_supported());
 
     let _ = *HHDM_RESPONSE;
     let _ = *MEMORY_MAP_RESPONSE;
     let _ = *FRAMEBUFFER_RESPONSE;
+    let _ = *SMP_RESPONSE;
 }

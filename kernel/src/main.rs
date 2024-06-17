@@ -19,7 +19,9 @@ mod logger;
 mod mapper;
 mod stack;
 
+use boot::SMP_RESPONSE;
 use cpu_data::CpuData;
+use limine::smp::Cpu;
 use x86_64::instructions::{hlt, interrupts};
 
 #[no_mangle]
@@ -27,7 +29,26 @@ unsafe extern "C" fn _start() -> ! {
     logger::init();
     log::info!("Hello, World!");
     boot::verify();
-    mapper::init();
+
+    SMP_RESPONSE
+        .cpus()
+        .iter()
+        .filter(|cpu| cpu.lapic_id != SMP_RESPONSE.bsp_lapic_id())
+        .for_each(|cpu| {
+            cpu.goto_address.write(main);
+        });
+
+    main(
+        SMP_RESPONSE
+            .cpus()
+            .iter()
+            .find(|cpu| cpu.lapic_id == SMP_RESPONSE.bsp_lapic_id())
+            .expect("There should be a bsp"),
+    );
+}
+
+extern "C" fn main(cpu: &Cpu) -> ! {
+    log::info!("CPU {} is started", cpu.lapic_id);
 
     gdt::init();
     idt::init();

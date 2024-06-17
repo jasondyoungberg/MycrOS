@@ -26,11 +26,6 @@ static KERNEL_MAPPER: Lazy<Mutex<OffsetPageTable>> = Lazy::new(|| {
     Mutex::new(mapper)
 });
 
-/// Initialize the memory mapper. Use this before changing Cr3.
-pub fn init() {
-    let _ = *KERNEL_MAPPER;
-}
-
 /// # Safety
 /// Memory mapping is fundamentally unsafe. See [`x86_64::structures::paging::Mapper::map_to`].
 pub unsafe fn map_kernel_page_to_frame(
