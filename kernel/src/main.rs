@@ -50,11 +50,11 @@ unsafe extern "C" fn _start() -> ! {
 extern "C" fn main(cpu: &Cpu) -> ! {
     log::info!("CPU {} is started", cpu.lapic_id);
 
+    // Safety: This is the only place where CpuData is initialized
+    unsafe { CpuData::init(u64::from(cpu.lapic_id)) };
+
     gdt::init();
     idt::init();
-
-    // Safety: This is the only place where CpuData is initialized
-    unsafe { CpuData::init(0) };
 
     interrupts::enable();
 

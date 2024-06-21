@@ -1,16 +1,19 @@
-use core::{arch::asm, cell::Cell, ptr};
+use core::cell::Cell;
 
 use alloc::boxed::Box;
-use x86_64::{registers::model_specific::GsBase, VirtAddr};
+use spin::Mutex;
+use x86_64::{registers::model_specific::GsBase, structures::tss::TaskStateSegment, VirtAddr};
 
 #[derive(Debug)]
 #[repr(C)]
+// NOTE: Don't move self_ptr, syscall_rsp, or sysret_rsp, as they are accessed by assembly code
 pub struct CpuData {
     self_ptr: *const CpuData,
     syscall_rsp: Cell<VirtAddr>,
     sysret_rsp: Cell<VirtAddr>,
     magic: [u8; 8],
-    cpuid: u64,
+    pub cpuid: u64,
+    pub tss: Mutex<TaskStateSegment>,
 }
 
 const MAGIC: &[u8; 8] = b"CpuData!";
@@ -20,24 +23,30 @@ impl CpuData {
     /// This function must only be called once per cpu
     pub unsafe fn init(cpuid: u64) {
         let data = Box::into_raw(Box::new(Self {
-            self_ptr: ptr::null(),
+            self_ptr: 0x69420 as *const Self, //ptr::null(),
             syscall_rsp: Cell::new(VirtAddr::zero()),
             sysret_rsp: Cell::new(VirtAddr::zero()),
             magic: *MAGIC,
             cpuid,
+            tss: Mutex::new(TaskStateSegment::new()),
         }));
 
         // Safety: This is the only reference to data
         unsafe { &mut *data }.self_ptr = data;
 
-        GsBase::write(VirtAddr::from_ptr(data));
+        let vaddr = VirtAddr::from_ptr(data);
+
+        GsBase::write(vaddr);
     }
 
     pub fn get() -> &'static Self {
-        let ptr: *const Self;
-
+        // let ptr: *const Self;
         // Safety: we a reading the `CpuData.self_ptr`, which shouldn't have any side effects
-        unsafe { asm!("mov {}, gs:0", out(reg) ptr) }
+        // unsafe { asm!("mov {}, gs:0", out(reg) ptr) }
+
+        let ptr = GsBase::read().as_ptr::<Self>();
+
+        assert!((ptr as i64) < 0, "Invalid pointer {ptr:p}");
 
         // Safety: Only immutable references exist at this point
         let data = unsafe { &*ptr };

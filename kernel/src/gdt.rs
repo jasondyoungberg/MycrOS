@@ -1,15 +1,12 @@
 use alloc::boxed::Box;
 use x86_64::{
     instructions::tables::load_tss,
-    registers::segmentation::{Segment, CS, DS, ES, FS, GS, SS},
-    structures::{
-        gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector},
-        tss::TaskStateSegment,
-    },
+    registers::segmentation::{Segment, CS, DS, ES, SS},
+    structures::gdt::{Descriptor, GlobalDescriptorTable, SegmentSelector},
     PrivilegeLevel::{Ring0, Ring3},
 };
 
-use crate::stack::Stack;
+use crate::{cpu_data::CpuData, stack::Stack};
 
 const KERNEL_CODE: SegmentSelector = SegmentSelector::new(1, Ring0);
 const KERNEL_DATA: SegmentSelector = SegmentSelector::new(2, Ring0);
@@ -17,7 +14,8 @@ const USER_DATA: SegmentSelector = SegmentSelector::new(3, Ring3);
 const USER_CODE: SegmentSelector = SegmentSelector::new(4, Ring3);
 
 pub fn init() {
-    let mut tss = Box::new(TaskStateSegment::new());
+    let cpu_data = CpuData::get();
+    let mut tss = cpu_data.tss.lock();
 
     tss.privilege_stack_table[0] = Stack::new(65536).rsp();
 
@@ -25,12 +23,19 @@ pub fn init() {
         tss.interrupt_stack_table[i] = Stack::new(65536).rsp();
     }
 
+    // Safety: The tss is stored in the CpuData struct and is not moved
+    // or deallocated.
+    let tss_descriptor = unsafe { Descriptor::tss_segment_unchecked(&*tss) };
+
+    drop(tss);
+
     let mut gdt = Box::new(GlobalDescriptorTable::new());
     let kernel_code = gdt.append(Descriptor::kernel_code_segment());
     let kernel_data = gdt.append(Descriptor::kernel_data_segment());
     let user_data = gdt.append(Descriptor::user_data_segment());
     let user_code = gdt.append(Descriptor::user_code_segment());
-    let tss_selector = gdt.append(Descriptor::tss_segment(Box::leak(tss)));
+
+    let tss_selector = gdt.append(tss_descriptor);
 
     assert_eq!(
         kernel_code, KERNEL_CODE,
@@ -51,8 +56,6 @@ pub fn init() {
         CS::set_reg(KERNEL_CODE);
         DS::set_reg(KERNEL_DATA);
         ES::set_reg(KERNEL_DATA);
-        FS::set_reg(KERNEL_DATA);
-        GS::set_reg(KERNEL_DATA);
         SS::set_reg(KERNEL_DATA);
     }
 }
