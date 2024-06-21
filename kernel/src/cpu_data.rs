@@ -1,8 +1,10 @@
-use core::cell::Cell;
+use core::{cell::Cell, ptr};
 
-use alloc::boxed::Box;
+use alloc::{boxed::Box, sync::Arc};
 use spin::Mutex;
 use x86_64::{registers::model_specific::GsBase, structures::tss::TaskStateSegment, VirtAddr};
+
+use crate::process::Process;
 
 #[derive(Debug)]
 #[repr(C)]
@@ -14,6 +16,7 @@ pub struct CpuData {
     magic: [u8; 8],
     pub cpuid: u64,
     pub tss: Mutex<TaskStateSegment>,
+    pub active_process: Mutex<Option<Arc<Mutex<Process>>>>,
 }
 
 const MAGIC: &[u8; 8] = b"CpuData!";
@@ -23,12 +26,13 @@ impl CpuData {
     /// This function must only be called once per cpu
     pub unsafe fn init(cpuid: u64) {
         let data = Box::into_raw(Box::new(Self {
-            self_ptr: 0x69420 as *const Self, //ptr::null(),
+            self_ptr: ptr::null(),
             syscall_rsp: Cell::new(VirtAddr::zero()),
             sysret_rsp: Cell::new(VirtAddr::zero()),
             magic: *MAGIC,
             cpuid,
             tss: Mutex::new(TaskStateSegment::new()),
+            active_process: Mutex::new(None),
         }));
 
         // Safety: This is the only reference to data

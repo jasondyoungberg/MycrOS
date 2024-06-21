@@ -17,11 +17,14 @@ mod idt;
 mod layout;
 mod logger;
 mod mapper;
+mod process;
+pub mod proot;
 mod stack;
 
 use boot::SMP_RESPONSE;
 use cpu_data::CpuData;
 use limine::smp::Cpu;
+use process::MANAGER;
 use x86_64::instructions::{hlt, interrupts};
 
 #[no_mangle]
@@ -56,9 +59,15 @@ extern "C" fn main(cpu: &Cpu) -> ! {
     gdt::init();
     idt::init();
 
+    if cpu.lapic_id == SMP_RESPONSE.bsp_lapic_id() {
+        process::MANAGER.init();
+    }
+
     interrupts::enable();
 
     loop {
+        MANAGER.get_process();
+        log::info!("looping");
         hlt();
     }
 }

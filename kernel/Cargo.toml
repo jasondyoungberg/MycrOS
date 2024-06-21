@@ -21,6 +21,7 @@ undocumented_unsafe_blocks = "warn"
 unwrap_used = "warn"
 
 cast_possible_truncation = "allow"
+module_name_repetitions = "allow"
 
 [dependencies]
 limine = "0.2.0"

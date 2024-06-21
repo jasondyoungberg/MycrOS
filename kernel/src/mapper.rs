@@ -64,3 +64,15 @@ pub unsafe fn unmap_kernel_page(page: Page) -> Result<(), UnmapError> {
 
     Ok(())
 }
+
+pub fn create_l4_table() -> PhysFrame {
+    let frame = alloc_frame().expect("Out of memory");
+    let virt = *OFFSET + frame.start_address().as_u64();
+
+    let ptr = virt.as_mut_ptr::<PageTable>();
+
+    // Safety: We just allocated this frame, so it's safe to write to it
+    unsafe { &mut *ptr }.clone_from(KERNEL_MAPPER.lock().level_4_table());
+
+    frame
+}

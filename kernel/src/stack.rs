@@ -11,6 +11,7 @@ use crate::{
 
 static PAGE_ALLOC: PageAllocator = PageAllocator::new(layout::STACK);
 
+#[derive(Debug)]
 pub struct Stack {
     pages: PageRange,
 }
