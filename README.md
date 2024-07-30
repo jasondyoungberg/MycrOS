@@ -2,13 +2,23 @@
 
 ## How to use this
 
-Install rust from https://rustup.rs/, other dependencies with apt,
-```bash
-sudo apt install build-essential qemu-system xorriso gdisk mtools gdb
+`make run`
+
+## Licenses
+
+This code uses the [limine-c-template](https://github.com/limine-bootloader/limine-c-template)
+
 ```
-then simply `make run`
+Copyright (C) 2022-2024 mintsuki and contributors.
 
-## Todo
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted.
 
-- Linked list frame allocator
-- Buddy/slab heap allocator
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES WITH
+REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY SPECIAL, DIRECT,
+INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM
+LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR
+OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
+PERFORMANCE OF THIS SOFTWARE.
+```
