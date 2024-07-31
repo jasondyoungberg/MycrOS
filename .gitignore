@@ -1,4 +1,6 @@
+**/target
 /limine
 /ovmf
+/.fsroot
 *.iso
 *.hdd
