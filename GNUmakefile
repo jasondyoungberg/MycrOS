@@ -3,7 +3,7 @@ override MAKEFLAGS += -rR
 
 override IMAGE_NAME := MycrOS
 
-override RUST_TARGET := x86_64-unknown-mycros.json
+override RUST_TARGET := x86_64-unknown-kernel.json
 override RUST_PROFILE := dev
 
 QEMU_ARGS := \
@@ -62,7 +62,7 @@ ovmf:
 
 limine/limine:
 	rm -rf limine
-	git clone https://github.com/limine-bootloader/limine.git --branch=v7.x-binary --depth=1
+	git clone https://github.com/limine-bootloader/limine.git --branch=v8.x-binary --depth=1
 	$(MAKE) -C limine
 
 .PHONY: kernel
@@ -75,7 +75,7 @@ kernel:
 	mkdir -p .fsroot/EFI/BOOT
 	mkdir -p .fsroot/sys
 
-	cp limine.cfg limine/limine-bios.sys limine/limine-bios-cd.bin limine/limine-uefi-cd.bin .fsroot/boot/
+	cp limine.conf limine/limine-bios.sys limine/limine-bios-cd.bin limine/limine-uefi-cd.bin .fsroot/boot/
 	cp -v limine/BOOTX64.EFI limine/BOOTIA32.EFI .fsroot/EFI/BOOT/
 
 	cp kernel/target/$(RUST_TARGET_SUBDIR)/$(RUST_PROFILE_SUBDIR)/kernel .fsroot/sys/
@@ -94,8 +94,8 @@ $(IMAGE_NAME).hdd: limine/limine kernel
 	sgdisk $(IMAGE_NAME).hdd -n 1:2048 -t 1:ef00
 	./limine/limine bios-install $(IMAGE_NAME).hdd
 	mformat -i $(IMAGE_NAME).hdd@@1M
-	mmd -i $(IMAGE_NAME).hdd@@1M ::/EFI ::/EFI/BOOT ::/boot ::/boot/limine
-	mcopy -i $(IMAGE_NAME).hdd@@1M kernel/kernel ::/boot
+	mmd -i $(IMAGE_NAME).hdd@@1M ::/EFI ::/EFI/BOOT ::/boot ::/boot/limine ::/sys
+	mcopy -i $(IMAGE_NAME).hdd@@1M kernel/target/$(RUST_TARGET_SUBDIR)/$(RUST_PROFILE_SUBDIR)/kernel ::/sys/kernel
 	mcopy -i $(IMAGE_NAME).hdd@@1M limine.cfg limine/limine-bios.sys ::/boot/limine
 	mcopy -i $(IMAGE_NAME).hdd@@1M limine/BOOTX64.EFI ::/EFI/BOOT
 	mcopy -i $(IMAGE_NAME).hdd@@1M limine/BOOTIA32.EFI ::/EFI/BOOT

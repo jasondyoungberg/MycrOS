@@ -1,86 +1,54 @@
 #![no_std]
 #![no_main]
-#![feature(abi_x86_interrupt)]
-#![feature(naked_functions)]
 
-extern crate alloc;
+use core::arch::asm;
 
-mod alloc_frame;
-mod alloc_page;
-mod boot;
-mod cpu_data;
-mod display;
-mod exception;
-mod gdt;
-mod heap;
-mod idt;
-mod layout;
-mod logger;
-mod mapper;
-mod process;
-pub mod proot;
-mod stack;
+use limine::request::FramebufferRequest;
+use limine::BaseRevision;
 
-use boot::SMP_RESPONSE;
-use cpu_data::CpuData;
-use limine::smp::Cpu;
-use process::MANAGER;
-use x86_64::instructions::{hlt, interrupts};
+/// Sets the base revision to the latest revision supported by the crate.
+/// See specification for further info.
+// Be sure to mark all limine requests with #[used], otherwise they may be removed by the compiler.
+#[used]
+// The .requests section allows limine to find the requests faster and more safely.
+#[link_section = ".requests"]
+static BASE_REVISION: BaseRevision = BaseRevision::new();
+
+#[used]
+#[link_section = ".requests"]
+static FRAMEBUFFER_REQUEST: FramebufferRequest = FramebufferRequest::new();
 
 #[no_mangle]
-unsafe extern "C" fn _start() -> ! {
-    logger::init();
-    log::info!("Hello, World!");
-    boot::verify();
+unsafe extern "C" fn kmain() -> ! {
+    // All limine requests must also be referenced in a called function, otherwise they may be
+    // removed by the linker.
+    assert!(BASE_REVISION.is_supported());
+    if let Some(framebuffer_response) = FRAMEBUFFER_REQUEST.get_response() {
+        if let Some(framebuffer) = framebuffer_response.framebuffers().next() {
+            for i in 0..100_u64 {
+                // Calculate the pixel offset using the framebuffer information we obtained above.
+                // We skip `i` scanlines (pitch is provided in bytes) and add `i * 4` to skip `i` pixels forward.
+                let pixel_offset = i * framebuffer.pitch() + i * 4;
 
-    SMP_RESPONSE
-        .cpus()
-        .iter()
-        .filter(|cpu| cpu.lapic_id != SMP_RESPONSE.bsp_lapic_id())
-        .for_each(|cpu| {
-            cpu.goto_address.write(main);
-        });
-
-    main(
-        SMP_RESPONSE
-            .cpus()
-            .iter()
-            .find(|cpu| cpu.lapic_id == SMP_RESPONSE.bsp_lapic_id())
-            .expect("There should be a bsp"),
-    );
-}
-
-extern "C" fn main(cpu: &Cpu) -> ! {
-    log::info!("CPU {} is started", cpu.lapic_id);
-
-    // Safety: This is the only place where CpuData is initialized
-    unsafe { CpuData::init(u64::from(cpu.lapic_id)) };
-
-    gdt::init();
-    idt::init();
-
-    if cpu.lapic_id == SMP_RESPONSE.bsp_lapic_id() {
-        process::MANAGER.init();
+                // Write 0xFFFFFFFF to the provided pixel offset to fill it white.
+                *(framebuffer.addr().add(pixel_offset as usize) as *mut u32) = 0xFFFFFFFF;
+            }
+        }
     }
 
-    interrupts::enable();
-
-    loop {
-        MANAGER.get_process();
-        log::info!("looping");
-        hlt();
-    }
+    hcf();
 }
 
 #[panic_handler]
-fn rust_panic(info: &core::panic::PanicInfo) -> ! {
-    log::error!("{}", info);
+fn rust_panic(_info: &core::panic::PanicInfo) -> ! {
     hcf();
 }
 
 fn hcf() -> ! {
-    interrupts::disable();
-    loop {
-        hlt();
+    unsafe {
+        asm!("cli");
+        loop {
+            asm!("hlt");
+        }
     }
 }
