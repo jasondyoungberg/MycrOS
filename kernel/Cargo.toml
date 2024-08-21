@@ -5,3 +5,6 @@ edition = "2021"
 
 [dependencies]
 limine = "0.2.0"
+talc = "4.4.1"
+spin = "0.9.8"
+bit_field = "0.10.2"
