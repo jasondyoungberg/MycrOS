@@ -3,7 +3,12 @@ override MAKEFLAGS += -rR
 
 override IMAGE_NAME := MycrOS
 
-override RUST_TARGET := x86_64-unknown-kernel.json
+override ARCH := x86_64
+# override ARCH := aarch64
+# override ARCH := riscv64
+# override ARCH := loongarch64
+
+override RUST_TARGET := $(ARCH)-unknown-kernel.json
 override RUST_PROFILE := dev
 
 QEMU_ARGS := \
@@ -80,7 +85,7 @@ kernel:
 	cp limine.conf limine/limine-bios.sys limine/limine-bios-cd.bin limine/limine-uefi-cd.bin .fsroot/boot/
 	cp -v limine/BOOTX64.EFI limine/BOOTIA32.EFI .fsroot/EFI/BOOT/
 
-	cp kernel/target/$(RUST_TARGET_SUBDIR)/$(RUST_PROFILE_SUBDIR)/kernel .fsroot/sys/
+	cp kernel/target/$(RUST_TARGET_SUBDIR)/$(RUST_PROFILE_SUBDIR)/kernel .fsroot/sys/kernel
 
 $(IMAGE_NAME).iso: limine/limine .fsroot
 	xorriso -as mkisofs -b boot/limine-bios-cd.bin \
