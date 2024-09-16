@@ -58,10 +58,10 @@ impl GlobalDescriptorTable {
             lgdt [{gdtr}]
 
             push {code}
-            lea {tmp}, [1f + rip]
+            lea {tmp}, [2f + rip]
             push {tmp}
             retfq
-            1:
+            2:
 
             mov ds, {data:x}
             mov es, {data:x}

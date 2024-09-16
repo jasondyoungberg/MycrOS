@@ -1,5 +1,6 @@
 #![no_std]
 #![no_main]
+#![allow(dead_code)]
 
 extern crate alloc;
 
@@ -22,6 +23,7 @@ extern "C" fn entry() -> ! {
         FRAMEBUFFER.lock().draw_char(c, (i, 0));
     }
 
+    println!("goodbye");
     hcf();
 }
 
@@ -38,4 +40,19 @@ fn hcf() -> ! {
             asm!("hlt");
         }
     }
+}
+
+#[macro_export]
+macro_rules! assert_once {
+    () => {
+        static CALLED: core::sync::atomic::AtomicBool = core::sync::atomic::AtomicBool::new(false);
+        CALLED
+            .compare_exchange(
+                false,
+                true,
+                core::sync::atomic::Ordering::AcqRel,
+                core::sync::atomic::Ordering::Acquire,
+            )
+            .expect("this function may only be called once");
+    };
 }

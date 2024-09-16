@@ -5,6 +5,7 @@ use gdt::GlobalDescriptorTable;
 use tss::TaskStateSegment;
 
 pub mod gdt;
+pub mod paging;
 pub mod tss;
 
 #[repr(C, packed(2))]
@@ -25,6 +26,8 @@ impl<T> DescriptorTablePointer<T> {
 }
 
 pub fn init() {
+    crate::assert_once!();
+
     let tss = Box::leak(Box::new(TaskStateSegment::new()));
     let gdt = Box::leak(Box::new(GlobalDescriptorTable::new(tss)));
     gdt.load();

@@ -2,6 +2,6 @@ pub enum MappingType {
     Code,
     ReadOnly,
     ReadWrite,
-    InputOutput,
+    Mmio,
     Framebuffer,
 }

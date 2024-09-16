@@ -1,5 +1,5 @@
-pub mod mapping;
+mod mapping;
 mod physptr;
-pub mod volatile;
 
+pub use mapping::MappingType;
 pub use physptr::PhysPtr;

@@ -1,19 +1,8 @@
-use limine::{
-    request::{FramebufferRequest, HhdmRequest},
-    BaseRevision,
-};
-use spin::Lazy;
-
-pub static HHDM_OFFSET: Lazy<usize> =
-    Lazy::new(|| HHDM_REQUEST.get_response().unwrap().offset() as usize);
+use limine::BaseRevision;
 
 #[used]
 #[link_section = ".requests"]
 static BASE_REVISION: BaseRevision = BaseRevision::new();
-
-#[used]
-#[link_section = ".requests"]
-static HHDM_REQUEST: HhdmRequest = HhdmRequest::new();
 
 #[used]
 #[link_section = ".requests_start_marker"]

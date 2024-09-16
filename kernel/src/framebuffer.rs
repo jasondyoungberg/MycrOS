@@ -1,10 +1,9 @@
-use core::slice;
+use core::ptr::NonNull;
 
 use bit_field::BitField;
 use limine::request::FramebufferRequest;
 use spin::{Lazy, Mutex};
-
-use crate::arch::volatile::Volatile;
+use volatile::{access::WriteOnly, VolatileRef};
 
 #[used]
 #[link_section = ".requests"]
@@ -13,6 +12,13 @@ static FRAMEBUFFER_REQUEST: FramebufferRequest = FramebufferRequest::new();
 const FONT_DATA: &[u8] = include_bytes!("font.bin");
 const FONT_WIDTH: usize = 8;
 const FONT_HEIGHT: usize = 16;
+
+pub struct Framebuffer {
+    buffer: VolatileRef<'static, u32, WriteOnly>,
+    width: usize,
+    height: usize,
+    stride: usize,
+}
 
 pub static FRAMEBUFFER: Lazy<Mutex<Framebuffer>> = Lazy::new(|| {
     let framebuffer = FRAMEBUFFER_REQUEST
@@ -28,9 +34,8 @@ pub static FRAMEBUFFER: Lazy<Mutex<Framebuffer>> = Lazy::new(|| {
     let height = framebuffer.height().try_into().unwrap();
     let stride = (framebuffer.pitch() / 4).try_into().unwrap();
 
-    let buffer_ptr = framebuffer.addr().cast();
-    let buffer_size = height * stride;
-    let buffer = unsafe { slice::from_raw_parts_mut(buffer_ptr, buffer_size) };
+    let addr = NonNull::new(framebuffer.addr().cast()).unwrap();
+    let buffer = unsafe { VolatileRef::new_restricted(WriteOnly, addr) };
 
     Mutex::new(Framebuffer {
         buffer,
@@ -40,16 +45,12 @@ pub static FRAMEBUFFER: Lazy<Mutex<Framebuffer>> = Lazy::new(|| {
     })
 });
 
-pub struct Framebuffer {
-    buffer: &'static mut [Volatile<u32>],
-    width: usize,
-    height: usize,
-    stride: usize,
-}
-
 impl Framebuffer {
     pub fn draw_pix(&mut self, color: u32, pos: (usize, usize)) {
-        self.buffer[pos.0 + pos.1 * self.stride].write(color);
+        let index = pos.0 + pos.1 * self.stride;
+        assert!(pos.0 < self.width);
+        assert!(pos.1 < self.height);
+        unsafe { self.buffer.as_mut_ptr().map(|x| x.add(index)) }.write(color)
     }
 
     pub fn draw_char(&mut self, c: char, pos: (usize, usize)) {
