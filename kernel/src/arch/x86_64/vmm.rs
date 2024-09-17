@@ -12,7 +12,6 @@ use crate::{
     },
     assert_once,
     boot::memory_mapping,
-    println,
 };
 
 static PML4: Lazy<Mutex<PhysPtr<PageTable<Level4>>>> =
