@@ -25,6 +25,8 @@ extern "C" fn entry() -> ! {
         FRAMEBUFFER.lock().draw_char(c, (i, 0));
     }
 
+    unsafe { asm!("int3") }
+
     println!("goodbye");
     hcf();
 }

@@ -6,6 +6,7 @@ use crate::arch::x86_64::structures::DescriptorTablePointer;
 
 use super::tss::TaskStateSegment;
 
+// update isr.asm if you change these
 pub const KERNEL_CODE: u16 = 8;
 pub const KERNEL_DATA: u16 = 16;
 pub const USER_DATA: u16 = 24 + 3;
