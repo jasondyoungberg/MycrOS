@@ -54,8 +54,14 @@ extern "C" fn isr_inner(data: &IsrData) {
 
     let rip = data.instruction as usize;
     let vector = data.vector;
+    let err = data.err_code;
+
     match vector {
         3 => println!("int {vector}: {}\n\trip: {rip:#x}", EXCEPTIONS[vector]),
+        8 | 10..=14 | 17 | 21 | 29 => panic!(
+            "int {vector} ({err}): {}\n\trip: {rip:#x}",
+            EXCEPTIONS[vector]
+        ),
         0..32 => panic!("int {vector}: {}\n\trip: {rip:#x}", EXCEPTIONS[vector]),
         32..256 => println!("int {vector}"),
         256.. => unreachable!(),
