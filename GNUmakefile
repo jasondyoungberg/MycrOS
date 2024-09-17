@@ -3,13 +3,13 @@ override MAKEFLAGS += -rR
 
 override IMAGE_NAME := MycrOS
 
-override ARCH := x86_64
+ARCH := x86_64
 # override ARCH := aarch64
 # override ARCH := riscv64
 # override ARCH := loongarch64
 
-override RUST_TARGET := $(ARCH)-unknown-kernel.json
-override RUST_PROFILE := dev
+RUST_TARGET := $(ARCH)-unknown-kernel.json
+RUST_PROFILE := dev
 
 QEMU_ARGS := \
 	-M q35 \
