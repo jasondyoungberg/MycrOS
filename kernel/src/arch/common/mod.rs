@@ -1,5 +1,4 @@
-mod mapping;
+pub mod memory;
 mod physptr;
 
-pub use mapping::MappingType;
 pub use physptr::PhysPtr;

@@ -1,14 +1,6 @@
 use core::{fmt::Debug, marker::PhantomData, ptr::NonNull};
 
-use limine::request::HhdmRequest;
-use spin::Lazy;
-
-#[used]
-#[link_section = ".requests"]
-static HHDM_REQUEST: HhdmRequest = HhdmRequest::new();
-
-pub static HHDM_OFFSET: Lazy<usize> =
-    Lazy::new(|| HHDM_REQUEST.get_response().unwrap().offset() as usize);
+use crate::boot::hhdm_offset;
 
 #[repr(transparent)]
 #[derive(Clone, Copy, PartialEq, Eq)]
@@ -34,7 +26,7 @@ impl<T> PhysPtr<T> {
     }
 
     pub fn as_ptr(&self) -> *const T {
-        (self.addr + *HHDM_OFFSET) as *const T
+        hhdm_offset().byte_add(self.addr).addr as *const T
     }
 
     pub fn as_mut_ptr(&self) -> *mut T {

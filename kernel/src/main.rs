@@ -19,6 +19,8 @@ extern "C" fn entry() -> ! {
     boot::verify();
     arch::init();
 
+    println!("Hello, World!");
+
     for (i, c) in "Hello, World!".chars().enumerate() {
         FRAMEBUFFER.lock().draw_char(c, (i, 0));
     }

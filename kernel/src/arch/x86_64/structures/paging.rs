@@ -7,7 +7,7 @@ use core::{
 
 use bitflags::bitflags;
 
-use crate::arch::{MappingType, PhysPtr};
+use crate::arch::{memory::MappingKind, PhysPtr};
 
 #[derive(Debug)]
 #[repr(C, align(4096))]
@@ -113,15 +113,16 @@ impl<L: LevelDec> PageTableEntry<L> {
 }
 
 impl PageTableFlags {
-    pub fn from_kind(kind: MappingType) -> Self {
+    pub fn from_kind(kind: MappingKind) -> Self {
         match kind {
-            MappingType::Code => Self::PRESENT,
-            MappingType::ReadOnly => Self::PRESENT | Self::EXECUTE_DISABLE,
-            MappingType::ReadWrite => Self::PRESENT | Self::WRITABLE | Self::EXECUTE_DISABLE,
-            MappingType::Mmio => {
+            MappingKind::Code => Self::PRESENT,
+            MappingKind::ReadOnly => Self::PRESENT | Self::EXECUTE_DISABLE,
+            MappingKind::ReadWrite => Self::PRESENT | Self::WRITABLE | Self::EXECUTE_DISABLE,
+            MappingKind::Full => Self::PRESENT | Self::WRITABLE,
+            MappingKind::Mmio => {
                 Self::PRESENT | Self::WRITABLE | Self::CACHE_DISABLE | Self::EXECUTE_DISABLE
             }
-            MappingType::Framebuffer => {
+            MappingKind::Framebuffer => {
                 Self::PRESENT | Self::WRITABLE | Self::CACHE_DISABLE | Self::EXECUTE_DISABLE
             }
         }

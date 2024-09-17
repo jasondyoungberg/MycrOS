@@ -27,8 +27,11 @@ RUST_ARGS := \
 	-Zbuild-std=core,compiler_builtins,alloc \
 	-Zbuild-std-features=compiler-builtins-mem \
 
-ifeq ($(DEBUG),1)
-	QEMU_ARGS += -S -d int
+ifeq ($(GDB),1)
+	QEMU_ARGS += -S
+endif
+ifeq ($(LOGINT),1)
+	QEMU_ARGS += -d int
 endif
 ifeq ($(KVM),1)
 	QEMU_ARGS += -enable-kvm

@@ -1,13 +1,11 @@
 use core::ptr::NonNull;
 
-use limine::{memory_map::EntryType, request::MemoryMapRequest};
 use spin::Mutex;
 
-use crate::arch::{PhysPtr, PAGE_SIZE};
-
-#[used]
-#[link_section = ".requests"]
-static MEMORY_MAP_REQUEST: MemoryMapRequest = MemoryMapRequest::new();
+use crate::{
+    arch::{PhysPtr, PAGE_SIZE},
+    boot::memory_map,
+};
 
 static HEAD: Mutex<Head> = Mutex::new(Head { next: None });
 
@@ -28,25 +26,20 @@ unsafe impl Send for Node {}
 pub(super) fn init() {
     crate::assert_once!();
 
-    let response = MEMORY_MAP_REQUEST.get_response().unwrap();
-
     let mut head = HEAD.lock();
 
-    for entry in response.entries() {
-        if entry.entry_type == EntryType::USABLE {
-            let base = PhysPtr::new(entry.base as usize);
-            let ptr = base.cast::<Node>().as_nonnull();
+    for entry in memory_map() {
+        let ptr = entry.ptr.cast::<Node>().as_nonnull();
 
-            unsafe {
-                ptr.write(Node {
-                    next: head.next,
-                    count: entry.length as usize / PAGE_SIZE,
-                    phys: base,
-                })
-            };
+        unsafe {
+            ptr.write(Node {
+                next: head.next,
+                count: entry.size / PAGE_SIZE,
+                phys: entry.ptr,
+            })
+        };
 
-            head.next = Some(ptr);
-        }
+        head.next = Some(ptr);
     }
 }
 
