@@ -81,3 +81,19 @@ pub fn alloc_page_zerod() -> Option<PhysPtr<()>> {
 
     Some(page)
 }
+
+pub fn dealloc_page(page: PhysPtr<()>) {
+    let mut head = HEAD.lock();
+
+    let ptr = page.cast::<Node>().as_nonnull();
+
+    unsafe {
+        ptr.write(Node {
+            next: head.next,
+            count: 1,
+            phys: page,
+        })
+    };
+
+    head.next = Some(ptr);
+}
