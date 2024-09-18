@@ -1,9 +1,3 @@
-.macro swapgs_if_necessary
-    cmp qword ptr [rsp + 24], 8
-    je 2f
-    swapgs
-    2:
-.endmacro
 .macro push_all
     push r15
     push r14
@@ -22,6 +16,7 @@
     push rbx
     push rax
 .endmacro
+
 .macro pop_all
     pop rax
     pop rbx
@@ -40,12 +35,21 @@
     pop r14
     pop r15
 .endmacro
+
+.macro swapgs_if_necessary
+    cmp qword ptr [rsp + 24], 8
+    je 2f
+    swapgs
+    2:
+.endmacro
+
 .macro def_isr_stub n
     isr_stub_\n:
     push 0
     push \n
     jmp isr_main
 .endmacro
+
 .macro def_isr_stub_err n
     isr_stub_\n:
     push \n
