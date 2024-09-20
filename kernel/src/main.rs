@@ -27,6 +27,12 @@ extern "C" fn entry() -> ! {
 
     unsafe { asm!("int3") }
 
+    boot::smp_init();
+}
+
+extern "C" fn smp_entry(cpuid: usize) -> ! {
+    println!("Hello, World! I'm cpu {cpuid}");
+
     println!("goodbye");
     hcf();
 }

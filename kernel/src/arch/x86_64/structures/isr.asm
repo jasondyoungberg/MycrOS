@@ -56,6 +56,8 @@
     jmp isr_main
 .endmacro
 
+.section .text
+
 .extern isr_inner
 isr_main:
     swapgs_if_necessary
@@ -326,6 +328,8 @@ def_isr_stub 252
 def_isr_stub 253
 def_isr_stub 254
 def_isr_stub 255
+
+.section .rodata
 
 .align 8
 .global isr_table

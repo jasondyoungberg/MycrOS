@@ -2,13 +2,17 @@ use core::ptr::addr_of;
 
 use limine::{
     memory_map::EntryType,
-    request::{HhdmRequest, KernelAddressRequest, KernelFileRequest, MemoryMapRequest},
+    request::{HhdmRequest, KernelAddressRequest, KernelFileRequest, MemoryMapRequest, SmpRequest},
+    smp::Cpu,
     BaseRevision,
 };
 
-use crate::arch::{
-    memory::{MappingKind, MemoryEntry, MemoryMapping},
-    PhysPtr,
+use crate::{
+    arch::{
+        memory::{MappingKind, MemoryEntry, MemoryMapping},
+        PhysPtr,
+    },
+    smp_entry,
 };
 
 #[used]
@@ -32,6 +36,10 @@ static KERNEL_ADDRESS_REQUEST: KernelAddressRequest = KernelAddressRequest::new(
 static KERNEL_FILE_REQUEST: KernelFileRequest = KernelFileRequest::new();
 
 #[used]
+#[link_section = ".requests"]
+static SMP_REQUEST: SmpRequest = SmpRequest::new();
+
+#[used]
 #[link_section = ".requests_start_marker"]
 static _START_MARKER: [u64; 4] = [
     0xf6b8f4b39de7d1ae,
@@ -50,6 +58,35 @@ pub fn verify() {
     assert!(HHDM_REQUEST.get_response().is_some());
     assert!(KERNEL_ADDRESS_REQUEST.get_response().is_some());
     assert!(KERNEL_FILE_REQUEST.get_response().is_some());
+    assert!(SMP_REQUEST.get_response().is_some());
+}
+
+pub fn smp_init() -> ! {
+    extern "C" fn entry(cpu: &Cpu) -> ! {
+        let response = SMP_REQUEST.get_response().unwrap();
+        let bsp_lapic_id = response.bsp_lapic_id();
+        let cpus = response.cpus();
+
+        smp_entry(
+            cpus.iter()
+                .filter(|c| c.lapic_id != bsp_lapic_id)
+                .enumerate()
+                .find(|(_, c)| c.lapic_id == cpu.lapic_id)
+                .unwrap()
+                .0
+                + 1,
+        );
+    }
+
+    let response = SMP_REQUEST.get_response().unwrap();
+    let bsp_lapic_id = response.bsp_lapic_id();
+    let cpus = response.cpus();
+
+    cpus.iter()
+        .filter(|c| c.lapic_id != bsp_lapic_id)
+        .for_each(|c| c.goto_address.write(entry));
+
+    smp_entry(0);
 }
 
 pub fn memory_map() -> impl Iterator<Item = MemoryEntry> {

@@ -21,16 +21,14 @@ pub(super) fn init() {
     assert_once!();
 
     for mapping in memory_mapping() {
-        for i in (0..mapping.size).step_by(PAGE_SIZE) {
-            unsafe {
-                create_mapping(
-                    mapping.virt.byte_add(i).cast_mut(),
-                    mapping.phys.byte_add(i),
-                    4096,
-                    mapping.kind,
-                );
-            }
-        }
+        unsafe {
+            create_mapping(
+                mapping.virt.cast_mut(),
+                mapping.phys,
+                mapping.size,
+                mapping.kind,
+            )
+        };
     }
 
     let pml4 = PML4.lock().addr();
@@ -39,9 +37,28 @@ pub(super) fn init() {
 
 pub unsafe fn create_mapping(virt: *mut (), phys: PhysPtr<()>, size: usize, kind: MappingKind) {
     let virt_bytes = virt as usize;
+    let phys_bytes = phys.addr();
 
-    assert_eq!(virt_bytes % PAGE_SIZE, 0);
-    assert_eq!(size, 4096);
+    assert!(
+        virt_bytes % PAGE_SIZE == 0,
+        "virt ({virt_bytes:#x?}) must be aligned to 4096 bytes"
+    );
+    assert!(
+        phys_bytes % PAGE_SIZE == 0,
+        "phys ({phys_bytes:#x?}) must be aligned to 4096 bytes"
+    );
+    assert!(
+        size % PAGE_SIZE == 0,
+        "size ({size:#x?}) must be aligned to 4096 bytes"
+    );
+    assert!(size != 0, "size must be non zero");
+
+    if size > PAGE_SIZE {
+        for i in (0..size).step_by(PAGE_SIZE) {
+            create_mapping(virt.byte_add(i), phys.byte_add(i), PAGE_SIZE, kind);
+        }
+        return;
+    }
 
     let pml4_index = virt_bytes.get_bits(39..48);
     let pml3_index = virt_bytes.get_bits(30..39);
@@ -80,7 +97,11 @@ pub unsafe fn create_mapping(virt: *mut (), phys: PhysPtr<()>, size: usize, kind
         .table()
         .as_mut_ref();
 
-    assert!(pml1.get_entry(pml1_index).is_none());
+    assert!(
+        pml1.get_entry(pml1_index).is_none(),
+        "mapping for {virt:#x?} already exists"
+    );
+
     pml1.set_entry(
         pml1_index,
         PageTableEntry::new(phys, PageTableFlags::from_kind(kind)),
