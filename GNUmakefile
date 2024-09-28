@@ -13,7 +13,7 @@ RUST_PROFILE := dev
 
 QEMU_ARGS := \
 	-M q35 \
-	-m 1G \
+	-m 128M \
 	-smp 4 \
 	-debugcon stdio \
 	-gdb tcp::1234 \
@@ -31,7 +31,7 @@ ifeq ($(GDB),1)
 	QEMU_ARGS += -S
 endif
 ifeq ($(LOGINT),1)
-	QEMU_ARGS += -d int
+	QEMU_ARGS += -d int -M smm=off
 endif
 ifeq ($(KVM),1)
 	QEMU_ARGS += -enable-kvm
