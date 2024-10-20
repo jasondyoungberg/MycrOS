@@ -1,7 +1,7 @@
 use spin::Mutex;
 use talc::{Span, Talc, Talck};
 
-use crate::arch::{memory::MappingKind, pmm::alloc_page, vmm::create_mapping, PAGE_SIZE};
+use crate::mem::{Mapper, MappingKind, KERNEL_MAPPER, PAGE_SIZE};
 
 #[global_allocator]
 static ALLOCATOR: Talck<spin::Mutex<()>, MyOomHandler> = Talc::new(MyOomHandler).lock();
@@ -13,18 +13,28 @@ struct MyOomHandler;
 
 impl talc::OomHandler for MyOomHandler {
     fn handle_oom(talc: &mut Talc<Self>, _layout: core::alloc::Layout) -> Result<(), ()> {
-        let page = alloc_page().unwrap();
-
-        let mut heap_span = HEAP_SPAN.try_lock().unwrap();
+        let mut heap_span = HEAP_SPAN.try_lock().expect("lock should always work");
 
         if let Some((_base, acme)) = heap_span.get_base_acme() {
-            unsafe { create_mapping(acme.cast(), page, PAGE_SIZE, MappingKind::ReadWrite) };
+            // add one more page
+            unsafe {
+                KERNEL_MAPPER
+                    .lock()
+                    .map(acme.cast(), PAGE_SIZE, MappingKind::ReadWrite)
+            }
+            .map_err(|_| ())?;
             let old_span = *heap_span;
             let new_span = heap_span.extend(0, PAGE_SIZE);
             *heap_span = unsafe { talc.extend(old_span, new_span) };
             Ok(())
         } else {
-            unsafe { create_mapping(HEAP_START.cast(), page, PAGE_SIZE, MappingKind::ReadWrite) };
+            // init heap
+            unsafe {
+                KERNEL_MAPPER
+                    .lock()
+                    .map(HEAP_START.cast(), PAGE_SIZE, MappingKind::ReadWrite)
+            }
+            .map_err(|_| ())?;
             *heap_span = unsafe { talc.claim(Span::from_base_size(HEAP_START, PAGE_SIZE)) }?;
             Ok(())
         }

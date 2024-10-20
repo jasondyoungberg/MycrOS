@@ -2,9 +2,7 @@ use core::arch::asm;
 
 use bit_field::BitField;
 
-use crate::arch::x86_64::structures::DescriptorTablePointer;
-
-use super::tss::TaskStateSegment;
+use super::{tss::TaskStateSegment, DescriptorTablePointer};
 
 // update isr.asm if you change these
 pub const KERNEL_CODE: u16 = 8;
@@ -75,5 +73,18 @@ impl GlobalDescriptorTable {
             code = in(reg) KERNEL_CODE as u64,
             data = in(reg) KERNEL_DATA,
         )
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use core::mem::offset_of;
+
+    use super::*;
+    fn selectors() {
+        assert_eq!(offset_of!(GlobalDescriptorTable, kernel_code), KERNEL_CODE);
+        assert_eq!(offset_of!(GlobalDescriptorTable, kernel_data), KERNEL_DATA);
+        assert_eq!(offset_of!(GlobalDescriptorTable, user_data), USER_DATA);
+        assert_eq!(offset_of!(GlobalDescriptorTable, user_code), USER_CODE);
     }
 }

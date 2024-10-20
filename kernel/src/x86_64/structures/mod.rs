@@ -2,12 +2,11 @@ use core::ptr;
 
 use alloc::boxed::Box;
 use gdt::GlobalDescriptorTable;
-use idt::InterruptDescriptorTable;
+use idt::IDT;
 use tss::TaskStateSegment;
 
 pub mod gdt;
 pub mod idt;
-pub mod paging;
 pub mod tss;
 
 #[repr(C, packed(2))]
@@ -28,12 +27,9 @@ impl<T> DescriptorTablePointer<T> {
 }
 
 pub fn init() {
-    crate::assert_once!();
-
     let tss = Box::leak(Box::new(TaskStateSegment::new()));
     let gdt = Box::leak(Box::new(GlobalDescriptorTable::new(tss)));
     gdt.load();
 
-    let idt = Box::leak(Box::new(InterruptDescriptorTable::new()));
-    idt.load();
+    IDT.load();
 }

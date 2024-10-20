@@ -1,19 +1,29 @@
-use core::ptr::addr_of;
+use core::{arch::asm, ptr::addr_of};
 
 use limine::{
     memory_map::EntryType,
-    request::{HhdmRequest, KernelAddressRequest, KernelFileRequest, MemoryMapRequest, SmpRequest},
+    request::{
+        HhdmRequest, KernelAddressRequest, KernelFileRequest, MemoryMapRequest, SmpRequest,
+        StackSizeRequest,
+    },
     smp::Cpu,
     BaseRevision,
 };
 
 use crate::{
-    arch::{
-        memory::{MappingKind, MemoryEntry, MemoryMapping},
-        PhysPtr,
-    },
-    smp_entry,
+    mem::{MappingKind, PhysPtr},
+    println, smp_main,
+    stack::{Stack, STACK_SIZE},
+    x86_64,
 };
+
+#[derive(Debug)]
+pub struct MemoryMapping {
+    pub kind: MappingKind,
+    pub virt: *const (),
+    pub phys: PhysPtr<()>,
+    pub size: usize,
+}
 
 #[used]
 #[link_section = ".requests"]
@@ -38,6 +48,10 @@ static KERNEL_FILE_REQUEST: KernelFileRequest = KernelFileRequest::new();
 #[used]
 #[link_section = ".requests"]
 static SMP_REQUEST: SmpRequest = SmpRequest::new();
+
+#[used]
+#[link_section = ".requests"]
+static STACK_SIZE_REQUEST: StackSizeRequest = StackSizeRequest::new().with_size(STACK_SIZE as u64);
 
 #[used]
 #[link_section = ".requests_start_marker"]
@@ -67,16 +81,41 @@ pub fn smp_init() -> ! {
         let bsp_lapic_id = response.bsp_lapic_id();
         let cpus = response.cpus();
 
-        smp_entry(
+        x86_64::init();
+
+        let cpuid = if cpu.lapic_id == bsp_lapic_id {
+            0
+        } else {
             cpus.iter()
                 .filter(|c| c.lapic_id != bsp_lapic_id)
                 .enumerate()
                 .find(|(_, c)| c.lapic_id == cpu.lapic_id)
                 .unwrap()
                 .0
-                + 1,
-        );
+                + 1
+        };
+
+        let new_sp = Stack::new()
+            .expect("critical mapping failed")
+            .stack_pointer();
+
+        unsafe {
+            asm!(
+                "
+            mov rsp, {new_sp}
+            mov rdi, {cpuid}
+            push 0
+            jmp {smp_main}
+        ",
+                new_sp = in(reg) new_sp,
+                cpuid = in(reg) cpuid,
+                smp_main = sym smp_main,
+                options(noreturn)
+            )
+        }
     }
+
+    println!("init smp");
 
     let response = SMP_REQUEST.get_response().unwrap();
     let bsp_lapic_id = response.bsp_lapic_id();
@@ -86,27 +125,32 @@ pub fn smp_init() -> ! {
         .filter(|c| c.lapic_id != bsp_lapic_id)
         .for_each(|c| c.goto_address.write(entry));
 
-    smp_entry(0);
+    entry(
+        cpus.iter()
+            .find(|c| c.lapic_id == bsp_lapic_id)
+            .expect("there should be a bsp"),
+    )
 }
 
-pub fn memory_map() -> impl Iterator<Item = MemoryEntry> {
+pub fn cpu_count() -> usize {
+    SMP_REQUEST.get_response().unwrap().cpus().len()
+}
+
+pub fn phys_memmap_usable() -> impl Iterator<Item = (PhysPtr<()>, usize)> {
     MEMORY_MAP_REQUEST
         .get_response()
         .unwrap()
         .entries()
         .iter()
         .filter(|e| e.entry_type == EntryType::USABLE)
-        .map(|e| MemoryEntry {
-            ptr: PhysPtr::new(e.base as usize),
-            size: e.length as usize,
-        })
+        .map(|e| (PhysPtr::new(e.base as usize), e.length as usize))
 }
 
-pub fn hhdm_offset() -> PhysPtr<()> {
-    PhysPtr::new(HHDM_REQUEST.get_response().unwrap().offset() as usize)
+pub fn hhdm_offset() -> *const () {
+    HHDM_REQUEST.get_response().unwrap().offset() as usize as *const ()
 }
 
-pub fn memory_mapping() -> impl Iterator<Item = MemoryMapping> {
+pub fn virt_memmap() -> impl Iterator<Item = MemoryMapping> {
     extern "C" {
         static elf_start: u8;
         static text_start: u8;
@@ -168,12 +212,6 @@ pub fn memory_mapping() -> impl Iterator<Item = MemoryMapping> {
                 | EntryType::BOOTLOADER_RECLAIMABLE
                 | EntryType::KERNEL_AND_MODULES => Some(MemoryMapping {
                     kind: MappingKind::ReadWrite,
-                    virt,
-                    phys,
-                    size,
-                }),
-                EntryType::ACPI_NVS => Some(MemoryMapping {
-                    kind: MappingKind::Mmio,
                     virt,
                     phys,
                     size,

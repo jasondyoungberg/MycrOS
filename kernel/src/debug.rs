@@ -7,7 +7,7 @@ use spin::mutex::Mutex;
 
 static CONSOLE: Mutex<DebugCon> = Mutex::new(DebugCon);
 
-pub struct DebugCon;
+struct DebugCon;
 
 impl Write for DebugCon {
     fn write_str(&mut self, s: &str) -> core::fmt::Result {

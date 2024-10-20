@@ -1,7 +1,7 @@
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => {
-        $crate::arch::debug::_print(format_args!($($arg)*))
+        $crate::debug::_print(format_args!($($arg)*))
     };
 }
 

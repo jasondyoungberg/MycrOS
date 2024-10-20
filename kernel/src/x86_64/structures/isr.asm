@@ -63,10 +63,10 @@ isr_main:
     swapgs_if_necessary
     push_all
     mov rdi, rsp
-    mov rbx, rsp
-    and rsp, -16
+    sub rsp, 8 // alignment
+    cld
     call isr_inner
-    mov rsp, rbx
+    add rsp, 8
     pop_all
     swapgs_if_necessary
     add rsp, 16

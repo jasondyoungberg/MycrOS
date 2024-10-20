@@ -1,14 +1,19 @@
 #![no_std]
 #![no_main]
+#![feature(allocator_api)]
 #![allow(dead_code)]
 
 extern crate alloc;
 
-mod arch;
 pub mod boot;
+pub mod cpulocal;
+pub mod debug;
 pub mod framebuffer;
 mod heap;
+pub mod mem;
 mod print;
+pub mod stack;
+mod x86_64;
 
 use core::arch::asm;
 
@@ -17,7 +22,6 @@ use framebuffer::FRAMEBUFFER;
 #[no_mangle]
 extern "C" fn entry() -> ! {
     boot::verify();
-    arch::init();
 
     println!("Hello, World!");
 
@@ -25,12 +29,11 @@ extern "C" fn entry() -> ! {
         FRAMEBUFFER.lock().draw_char(c, (i, 0));
     }
 
-    unsafe { asm!("int3") }
-
     boot::smp_init();
 }
 
-extern "C" fn smp_entry(cpuid: usize) -> ! {
+#[no_mangle]
+extern "C" fn smp_main(cpuid: usize) -> ! {
     println!("Hello, World! I'm cpu {cpuid}");
 
     println!("goodbye");

@@ -4,10 +4,11 @@ use core::{
 };
 
 use bit_field::BitField;
+use spin::Lazy;
 
-use crate::{arch::x86_64::structures::DescriptorTablePointer, println};
+use crate::println;
 
-use super::gdt::KERNEL_CODE;
+use super::{gdt::KERNEL_CODE, DescriptorTablePointer};
 
 global_asm!(include_str!("isr.asm"));
 
@@ -97,8 +98,10 @@ struct IsrData {
     stack_segment: usize,
 }
 
+pub static IDT: Lazy<InterruptDescriptorTable> = Lazy::new(InterruptDescriptorTable::new);
+
 impl InterruptDescriptorTable {
-    pub fn new() -> Self {
+    fn new() -> Self {
         Self {
             data: array::from_fn(|i| {
                 let isr = unsafe { isr_table[i] };
