@@ -1,7 +1,7 @@
 #[cfg(not(target_arch = "x86_64"))]
 compile_error!("this code only works on x86_64");
 
-use registers::Cr3;
+use registers::control::Cr3;
 
 use crate::{
     mem::{Mapper, KERNEL_MAPPER},
@@ -12,8 +12,7 @@ pub mod registers;
 mod structures;
 
 pub fn init() {
-    let cr3 = Cr3(KERNEL_MAPPER.lock().ptroot().addr() as u64);
-    unsafe { cr3.store() };
+    unsafe { Cr3::write_raw(KERNEL_MAPPER.lock().ptroot().addr() as u64) };
 
     println!("initilizing gdt/tss...");
     structures::init();

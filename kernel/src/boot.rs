@@ -11,6 +11,7 @@ use limine::{
 };
 
 use crate::{
+    assert_once, cpulocal,
     mem::{MappingKind, PhysPtr},
     println, smp_main,
     stack::{Stack, STACK_SIZE},
@@ -88,7 +89,11 @@ pub fn smp_init() -> ! {
                 .unwrap()
                 .0
                 + 1
-        };
+        }
+        .try_into()
+        .unwrap();
+
+        unsafe { cpulocal::init(cpuid) };
 
         let new_sp = Stack::new()
             .expect("critical mapping failed")
@@ -103,7 +108,7 @@ pub fn smp_init() -> ! {
             jmp {smp_main}
         ",
                 new_sp = in(reg) new_sp,
-                cpuid = in(reg) cpuid,
+                cpuid = in(reg) cpuid as u64,
                 smp_main = sym smp_main,
                 options(noreturn)
             )
@@ -111,6 +116,7 @@ pub fn smp_init() -> ! {
     }
 
     println!("init smp");
+    assert_once!();
 
     let response = SMP_REQUEST.get_response().unwrap();
     let bsp_lapic_id = response.bsp_lapic_id();
@@ -127,8 +133,14 @@ pub fn smp_init() -> ! {
     )
 }
 
-pub fn cpu_count() -> usize {
-    SMP_REQUEST.get_response().unwrap().cpus().len()
+pub fn cpu_count() -> u32 {
+    SMP_REQUEST
+        .get_response()
+        .unwrap()
+        .cpus()
+        .len()
+        .try_into()
+        .unwrap()
 }
 
 pub fn phys_memmap_usable() -> impl Iterator<Item = (PhysPtr<()>, usize)> {
