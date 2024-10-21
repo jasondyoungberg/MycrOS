@@ -3,8 +3,8 @@ use core::{arch::asm, ptr::addr_of};
 use limine::{
     memory_map::EntryType,
     request::{
-        HhdmRequest, KernelAddressRequest, KernelFileRequest, MemoryMapRequest, SmpRequest,
-        StackSizeRequest,
+        HhdmRequest, KernelAddressRequest, KernelFileRequest, MemoryMapRequest, RequestsEndMarker,
+        RequestsStartMarker, SmpRequest, StackSizeRequest,
     },
     smp::Cpu,
     BaseRevision,
@@ -55,16 +55,11 @@ static STACK_SIZE_REQUEST: StackSizeRequest = StackSizeRequest::new().with_size(
 
 #[used]
 #[link_section = ".requests_start_marker"]
-static _START_MARKER: [u64; 4] = [
-    0xf6b8f4b39de7d1ae,
-    0xfab91a6940fcb9cf,
-    0x785c6ed015d3e316,
-    0x181e920a7852b9d9,
-];
+static START_MARKER: RequestsStartMarker = RequestsStartMarker::new();
 
 #[used]
 #[link_section = ".requests_end_marker"]
-static _END_MARKER: [u64; 2] = [0xadc0e0531bb10d03, 0x9572709f31764c62];
+static END_MARKER: RequestsEndMarker = RequestsEndMarker::new();
 
 pub fn verify() {
     assert!(BASE_REVISION.is_supported());

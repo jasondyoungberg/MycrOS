@@ -5,6 +5,7 @@ use spin::Once;
 
 use crate::boot::cpu_count;
 
+#[allow(clippy::type_complexity)]
 pub struct CpuLocal<T> {
     cell: Once<Box<[T]>>,
     init: Cell<Option<fn(usize) -> T>>,
