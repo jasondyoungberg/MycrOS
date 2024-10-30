@@ -3,7 +3,7 @@ use talc::{Span, Talc, Talck};
 
 use crate::mem::{Mapper, MappingKind, KERNEL_MAPPER, PAGE_SIZE};
 
-#[global_allocator]
+#[cfg_attr(target_os = "none", global_allocator)]
 static ALLOCATOR: Talck<spin::Mutex<()>, MyOomHandler> = Talc::new(MyOomHandler).lock();
 
 const HEAP_START: *mut u8 = 0xffff_9000_0000_0000 as *mut u8;

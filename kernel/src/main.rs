@@ -1,60 +1,39 @@
-#![no_std]
-#![no_main]
+#![cfg_attr(target_os = "none", no_std)]
+#![cfg_attr(target_os = "none", no_main)]
 #![feature(allocator_api)]
 #![allow(dead_code)]
 
 extern crate alloc;
 
+pub mod arch;
 pub mod boot;
 pub mod cpulocal;
-pub mod debug;
 pub mod framebuffer;
-mod heap;
+pub mod heap;
 pub mod mem;
-mod print;
+pub mod print;
 pub mod stack;
-mod x86_64;
-
-use core::arch::asm;
 
 use cpulocal::CpuLocal;
-use framebuffer::FRAMEBUFFER;
 
 #[no_mangle]
-extern "C" fn entry() -> ! {
-    boot::verify();
-
-    println!("Hello, World!");
-
-    for (i, c) in "Hello, World!".chars().enumerate() {
-        FRAMEBUFFER.lock().draw_char(c, (i, 0));
-    }
-
-    boot::smp_init();
-}
-
-#[no_mangle]
-extern "C" fn smp_main() -> ! {
+extern "C" fn kmain() -> ! {
     println!("I'm cpu {}", *CPUID);
     println!("goodbye");
-    hcf();
+    arch::hcf();
 }
 
 static CPUID: CpuLocal<u32> = CpuLocal::new(|id| id);
 
-#[panic_handler]
-fn rust_panic(info: &core::panic::PanicInfo) -> ! {
+#[cfg_attr(target_os = "none", panic_handler)]
+fn _rust_panic(info: &core::panic::PanicInfo) -> ! {
     println!("{info}");
-    hcf();
+    arch::hcf();
 }
 
-fn hcf() -> ! {
-    unsafe {
-        asm!("cli");
-        loop {
-            asm!("hlt");
-        }
-    }
+#[cfg(not(target_os = "none"))]
+fn main() {
+    boot::entry();
 }
 
 #[macro_export]

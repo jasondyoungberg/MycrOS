@@ -1,7 +1,13 @@
+use core::fmt::{self, Write};
+
+use spin::Mutex;
+
+use crate::arch;
+
 #[macro_export]
 macro_rules! print {
     ($($arg:tt)*) => {
-        $crate::debug::_print(format_args!($($arg)*))
+        $crate::print::_print(format_args!($($arg)*))
     };
 }
 
@@ -32,4 +38,18 @@ macro_rules! dbg {
     ($($val:expr),+ $(,)?) => {
         ($($crate::dbg!($val)),+,)
     };
+}
+
+struct Console;
+static CONSOLE: Mutex<Console> = Mutex::new(Console);
+impl Write for Console {
+    fn write_str(&mut self, s: &str) -> fmt::Result {
+        arch::debug_print(s);
+        Ok(())
+    }
+}
+
+#[doc(hidden)]
+pub fn _print(args: fmt::Arguments) {
+    CONSOLE.lock().write_fmt(args).unwrap()
 }

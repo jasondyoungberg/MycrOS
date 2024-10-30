@@ -11,11 +11,10 @@ use limine::{
 };
 
 use crate::{
-    assert_once, cpulocal,
+    arch, kmain,
     mem::{MappingKind, PhysPtr},
-    println, smp_main,
+    println,
     stack::{Stack, STACK_SIZE},
-    x86_64,
 };
 
 #[derive(Debug)]
@@ -62,7 +61,7 @@ static START_MARKER: RequestsStartMarker = RequestsStartMarker::new();
 #[link_section = ".requests_end_marker"]
 static END_MARKER: RequestsEndMarker = RequestsEndMarker::new();
 
-pub fn verify() {
+fn verify_requests() {
     assert!(BASE_REVISION.is_supported());
     assert!(MEMORY_MAP_REQUEST.get_response().is_some());
     assert!(HHDM_REQUEST.get_response().is_some());
@@ -71,13 +70,12 @@ pub fn verify() {
     assert!(SMP_REQUEST.get_response().is_some());
 }
 
-pub fn smp_init() -> ! {
+#[no_mangle]
+extern "C" fn entry() -> ! {
     extern "C" fn entry(cpu: &Cpu) -> ! {
         let response = SMP_REQUEST.get_response().unwrap();
         let bsp_lapic_id = response.bsp_lapic_id();
         let cpus = response.cpus();
-
-        x86_64::init();
 
         let cpuid = if cpu.lapic_id == bsp_lapic_id {
             0
@@ -93,7 +91,7 @@ pub fn smp_init() -> ! {
         .try_into()
         .unwrap();
 
-        unsafe { cpulocal::init(cpuid) };
+        arch::init(cpuid);
 
         let new_sp = Stack::new()
             .expect("critical mapping failed")
@@ -104,19 +102,20 @@ pub fn smp_init() -> ! {
                 "
             mov rsp, {new_sp}
             mov rdi, {cpuid}
-            push 0
-            jmp {smp_main}
+            call {kmain}
+            ud2
         ",
                 new_sp = in(reg) new_sp,
                 cpuid = in(reg) cpuid as u64,
-                smp_main = sym smp_main,
+                kmain = sym kmain,
                 options(noreturn)
             )
         }
     }
 
-    println!("init smp");
-    assert_once!();
+    println!("Hello, World!");
+
+    verify_requests();
 
     let response = SMP_REQUEST.get_response().unwrap();
     let bsp_lapic_id = response.bsp_lapic_id();
